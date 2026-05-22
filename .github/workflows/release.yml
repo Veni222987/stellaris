@@ -35,8 +35,7 @@ jobs:
             GOOS=$OS GOARCH=$ARCH CGO_ENABLED=0 \
               go build -ldflags="-s -w -X main.version=${VER}" \
               -o "dist/${OUT}/stellaris-cli" ./agent/cmd
-            (cd dist && tar -czf "${OUT}.tar.gz" "${OUT}")
-            sha256sum "dist/${OUT}.tar.gz" > "dist/${OUT}.tar.gz.sha256"
+            (cd dist && tar -czf "${OUT}.tar.gz" "${OUT}" && sha256sum "${OUT}.tar.gz" > "${OUT}.tar.gz.sha256")
             echo "✓ dist/${OUT}.tar.gz"
           done
 

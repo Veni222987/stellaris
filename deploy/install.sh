@@ -20,12 +20,14 @@ PREFIX="${STELLARIS_PREFIX:-/usr/local}"
 REPO="Veni222987/stellaris"
 MIRROR="${STELLARIS_MIRROR:-https://github.com/${REPO}/releases/download}"
 
-# VERSION 为空时通过 API 解析最新 tag
+# VERSION 为空时通过 latest 重定向拿实际 tag（无需 API token，不受匿名限速影响）
 resolve_version() {
-    local tag
-    tag="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
-        | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')"
-    [ -n "$tag" ] || { echo "ERROR: 无法获取最新版本号，请手动设置 STELLARIS_VERSION" >&2; exit 1; }
+    local url tag
+    url="$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
+        "https://github.com/${REPO}/releases/latest")"
+    tag="${url##*/}"
+    [ -n "$tag" ] && [ "$tag" != "latest" ] || \
+        { echo "ERROR: 无法解析最新版本号，请手动设置 STELLARIS_VERSION" >&2; exit 1; }
     echo "$tag"
 }
 
