@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: |
+            agent/go.sum
+            shared/protocol/go.sum
+            shared/token/go.sum
+
+      - name: 构建多平台发布包
+        run: |
+          VER="${GITHUB_REF_NAME}"
+          for pair in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64; do
+            OS="${pair%-*}"; ARCH="${pair#*-}"
+            OUT="stellaris-cli-${VER}-${OS}-${ARCH}"
+            mkdir -p "dist/${OUT}"
+            GOOS=$OS GOARCH=$ARCH CGO_ENABLED=0 \
+              go build -ldflags="-s -w -X main.version=${VER}" \
+              -o "dist/${OUT}/stellaris-cli" ./agent/cmd
+            (cd dist && tar -czf "${OUT}.tar.gz" "${OUT}")
+            sha256sum "dist/${OUT}.tar.gz" > "dist/${OUT}.tar.gz.sha256"
+            echo "✓ dist/${OUT}.tar.gz"
+          done
+
+      - name: 发布到 GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.tar.gz.sha256
+          generate_release_notes: true

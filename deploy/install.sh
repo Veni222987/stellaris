@@ -17,7 +17,7 @@ set -euo pipefail
 
 VERSION="${STELLARIS_VERSION:-latest}"
 PREFIX="${STELLARIS_PREFIX:-/usr/local}"
-MIRROR="${STELLARIS_MIRROR:-https://github.com/stellaris-dev/stellaris/releases/download}"
+MIRROR="${STELLARIS_MIRROR:-https://github.com/Veni222987/stellaris/releases/download}"
 
 detect_platform() {
     local os arch
