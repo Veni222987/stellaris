@@ -1,0 +1,161 @@
+syntax = "v1"
+
+info (
+	title:   "Stellaris Core API"
+	version: "0.1"
+)
+
+// ===== 公共类型 =====
+type (
+	AgentInfo {
+		AgentUUID        string                 `json:"agent_uuid"`
+		Type             string                 `json:"type"`
+		Name             string                 `json:"name"`
+		Models           []string               `json:"models"`
+		CapabilitiesJSON map[string]interface{} `json:"capabilities"`
+		Status           string                 `json:"status"`
+	}
+)
+
+// ===== 鉴权 =====
+type (
+	RegisterReq {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	RegisterResp {
+		Token string `json:"token"`
+	}
+	LoginReq {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	LoginResp {
+		Token string `json:"token"`
+	}
+)
+
+@server (
+	group: auth
+)
+service core-api {
+	@handler register
+	post /api/auth/register (RegisterReq) returns (RegisterResp)
+
+	@handler login
+	post /api/auth/login (LoginReq) returns (LoginResp)
+}
+
+// ===== 星系（需要用户 JWT）=====
+type (
+	GalaxyCreateReq {
+		Name string `json:"name"`
+	}
+	GalaxyCreateResp {
+		GID       string `json:"gid"`
+		NodeToken string `json:"node_token"`
+	}
+)
+
+@server (
+	group: galaxy
+	jwt:   UserJwt
+)
+service core-api {
+	@handler createGalaxy
+	post /api/galaxy/create (GalaxyCreateReq) returns (GalaxyCreateResp)
+}
+
+// ===== Planet =====
+type (
+	PlanetJoinReq {
+		GID       string `json:"gid"`
+		NodeToken string `json:"node_token"`
+		Hostname  string `json:"hostname"`
+		IP        string `json:"ip"`
+		OS        string `json:"os"`
+	}
+	PlanetJoinResp {
+		PlanetUUID string `json:"planet_uuid"`
+		PlanetJwt  string `json:"planet_jwt"`
+	}
+	HeartbeatReq {
+		Agents []AgentInfo `json:"agents"`
+		CPU    float64     `json:"cpu"`
+		Mem    float64     `json:"mem"`
+	}
+	HeartbeatResp {
+		OK bool `json:"ok"`
+	}
+)
+
+@server (
+	group: planet
+)
+service core-api {
+	@handler planetJoin
+	post /api/planet/join (PlanetJoinReq) returns (PlanetJoinResp)
+}
+
+@server (
+	group: planet
+	jwt:   PlanetJwt
+)
+service core-api {
+	@handler planetHeartbeat
+	post /api/planet/heartbeat (HeartbeatReq) returns (HeartbeatResp)
+}
+
+// ===== 会话与消息 =====
+type (
+	SessionCreateReq {
+		GID        string   `json:"gid"`
+		Mode       string   `json:"mode"`
+		AgentUUIDs []string `json:"agent_uuids"`
+	}
+	SessionCreateResp {
+		SessionUUID string `json:"session_uuid"`
+	}
+	SessionMessageReq {
+		SessionUUID string `path:"session_uuid"`
+		Content     string `json:"content"`
+	}
+	SessionMessageResp {
+		MessageID int64    `json:"message_id"`
+		TaskUUIDs []string `json:"task_uuids"`
+	}
+	TaskChunk {
+		Seq   int    `json:"seq"`
+		Type  string `json:"type"`
+		Chunk string `json:"chunk"`
+		TS    int64  `json:"ts"`
+	}
+	TaskOutput {
+		TaskUUID  string      `json:"task_uuid"`
+		Status    string      `json:"status"`
+		AgentUUID string      `json:"agent_uuid"`
+		Chunks    []TaskChunk `json:"chunks"`
+	}
+	SessionHistoryReq {
+		SessionUUID string `path:"session_uuid"`
+	}
+	SessionHistoryResp {
+		Tasks []TaskOutput `json:"tasks"`
+	}
+)
+
+@server (
+	group: session
+	jwt:   UserJwt
+)
+service core-api {
+	@handler sessionCreate
+	post /api/session/create (SessionCreateReq) returns (SessionCreateResp)
+
+	@handler sessionMessage
+	post /api/session/:session_uuid/message (SessionMessageReq) returns (SessionMessageResp)
+
+	@handler sessionHistory
+	get /api/session/:session_uuid/history (SessionHistoryReq) returns (SessionHistoryResp)
+}
+

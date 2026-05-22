@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build-binaries:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - { os: linux,  arch: amd64 }
+          - { os: linux,  arch: arm64 }
+          - { os: darwin, arch: amd64 }
+          - { os: darwin, arch: arm64 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.5'
+      - name: Build stellaris-cli
+        env:
+          GOOS: ${{ matrix.target.os }}
+          GOARCH: ${{ matrix.target.arch }}
+          CGO_ENABLED: 0
+        run: |
+          VER="${GITHUB_REF_NAME}"
+          OUT="stellaris-cli-${VER}-${GOOS}-${GOARCH}"
+          mkdir -p dist/"$OUT"
+          go build -ldflags="-s -w" -o dist/"$OUT"/stellaris-cli ./agent/cmd
+          cp deploy/stellaris-cli.service dist/"$OUT"/ 2>/dev/null || true
+          cp deploy/install.sh dist/"$OUT"/ 2>/dev/null || true
+          (cd dist && tar -czf "${OUT}.tar.gz" "$OUT" && sha256sum "${OUT}.tar.gz" > "${OUT}.tar.gz.sha256")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stellaris-cli-${{ matrix.target.os }}-${{ matrix.target.arch }}
+          path: dist/*.tar.gz*
+
+  docker-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      - name: Prebuild web/dist
+        run: cd web && npm ci && npm run build
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & push core
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/Dockerfile.core
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/stellaris-core:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}/stellaris-core:latest
+      - name: Build & push web
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/Dockerfile.web
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/stellaris-web:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}/stellaris-web:latest
+
+  github-release:
+    needs: [build-binaries, docker-publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

@@ -1,0 +1,6 @@
+# Stellaris Web 前端镜像：将预构建的静态产物装入 nginx 提供服务。
+# Stellaris Web image: serve pre-built static assets via nginx.
+FROM nginx:1.27-alpine
+COPY web/dist /usr/share/nginx/html
+COPY deploy/nginx.conf /etc/nginx/nginx.conf
+EXPOSE 80

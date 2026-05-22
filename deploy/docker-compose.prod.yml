@@ -1,0 +1,51 @@
+# 生产栈：一行起完整 Stellaris（postgres + redis + emqx + core + web）。
+# 用法：cd deploy && docker compose -f docker-compose.prod.yml --env-file .env up -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-stellaris}
+      POSTGRES_USER: ${POSTGRES_USER:-stellaris}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stellaris}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../server/migrations/001_initial.up.sql:/docker-entrypoint-initdb.d/001_initial.up.sql
+      - ../server/migrations/002_m3_relay_orchestration.up.sql:/docker-entrypoint-initdb.d/002_m3_relay_orchestration.up.sql
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  emqx:
+    image: emqx/emqx:5.4
+    environment:
+      EMQX_ALLOW_ANONYMOUS: "true"
+    ports:
+      - "1883:1883"
+    restart: unless-stopped
+
+  core:
+    image: stellaris-core:dev
+    depends_on: [postgres, redis, emqx]
+    volumes:
+      - ./core.prod.yaml:/app/core.yaml:ro
+    environment:
+      POSTGRES_DSN: "postgres://${POSTGRES_USER:-stellaris}:${POSTGRES_PASSWORD:-stellaris}@postgres:5432/${POSTGRES_DB:-stellaris}?sslmode=disable"
+      REDIS_ADDR: "redis:6379"
+      MQTT_BROKER: "tcp://emqx:1883"
+      USER_JWT_SECRET: "${USER_JWT_SECRET:?USER_JWT_SECRET must be set}"
+      PLANET_JWT_SECRET: "${PLANET_JWT_SECRET:?PLANET_JWT_SECRET must be set}"
+    ports:
+      - "4228:4228"
+    restart: unless-stopped
+
+  web:
+    image: stellaris-web:dev
+    depends_on: [core]
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

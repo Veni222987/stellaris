@@ -1,0 +1,22 @@
+# stellaris-core 多阶段镜像：build 阶段编译，runtime 阶段仅保留运行时依赖。
+# stellaris-core multi-stage image: compile in build stage, keep only runtime deps in final stage.
+FROM golang:1.25.5-alpine AS build
+WORKDIR /src
+RUN apk add --no-cache git
+COPY go.work go.work.sum* ./
+COPY server/ ./server/
+COPY agent/ ./agent/
+COPY shared/ ./shared/
+COPY tests/ ./tests/
+RUN cd server && CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /out/stellaris-core ./cmd
+
+FROM alpine:3.20 AS runtime
+RUN apk add --no-cache ca-certificates && adduser -D -u 10001 stellaris
+WORKDIR /app
+COPY --from=build /out/stellaris-core /usr/local/bin/stellaris-core
+COPY server/etc/core.yaml /app/core.yaml
+COPY server/migrations/ /app/migrations/
+USER stellaris
+EXPOSE 4228
+ENTRYPOINT ["/usr/local/bin/stellaris-core"]
+CMD ["-f", "/app/core.yaml"]

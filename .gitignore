@@ -1,0 +1,26 @@
+# 二进制
+/bin/
+stellaris-core
+stellaris-cli
+
+# Go
+*.test
+*.out
+vendor/
+
+# IDE
+.idea/
+.vscode/
+
+# 环境
+.env
+.env.local
+
+# 数据
+data/
+*.db
+dist/
+
+# 草稿与内部规划 / Drafts and internal planning
+draft/
+docs/superpowers/

@@ -1,0 +1,29 @@
+# Stellaris Planet 代理 systemd unit 模板。
+# 安装：cp deploy/stellaris-cli.service /etc/systemd/system/
+#       systemctl daemon-reload && systemctl enable --now stellaris-cli
+# install.sh 会自动写一份等价内容，本文件是无 install.sh 场景下的参考。
+
+[Unit]
+Description=Stellaris Planet 代理
+Documentation=https://github.com/stellaris-dev/stellaris
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/stellaris-cli start
+ExecStop=/usr/local/bin/stellaris-cli stop
+Restart=on-failure
+RestartSec=5
+User=root
+Environment=STELLARIS_CONFIG_DIR=/etc/stellaris
+
+# 安全加固
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/etc/stellaris /var/log/stellaris
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

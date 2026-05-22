@@ -1,0 +1,23 @@
+# 生产/容器化部署使用的 core 配置；主机名指向 docker compose 中的服务名。
+# 字段值使用 go-zero conf 包支持的 ${VAR:-default} 语法以便用环境变量覆盖。
+Name: core-api
+Host: 0.0.0.0
+Port: 4228
+
+UserJwt:
+  AccessSecret: ${USER_JWT_SECRET:-please-change-in-prod-user}
+  AccessExpire: 86400
+
+PlanetJwt:
+  AccessSecret: ${PLANET_JWT_SECRET:-please-change-in-prod-planet}
+  AccessExpire: 604800
+
+Postgres:
+  DataSource: ${POSTGRES_DSN:-postgres://stellaris:stellaris@postgres:5432/stellaris?sslmode=disable}
+
+Redis:
+  Host: ${REDIS_ADDR:-redis:6379}
+
+MQTT:
+  Broker: ${MQTT_BROKER:-tcp://emqx:1883}
+  ClientID: stellaris-core

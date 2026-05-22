@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: stellaris
+      POSTGRES_USER: stellaris
+      POSTGRES_PASSWORD: stellaris
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../server/migrations/001_initial.up.sql:/docker-entrypoint-initdb.d/001_initial.up.sql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  emqx:
+    image: emqx/emqx:5.4
+    ports:
+      - "1883:1883"
+      - "18083:18083"
+    environment:
+      EMQX_ALLOW_ANONYMOUS: "true"
+
+volumes:
+  postgres_data:
