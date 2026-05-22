@@ -5,18 +5,21 @@
 # 用法：
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/Veni222987/stellaris/main/deploy/install.sh | sh
-#   sudo bash deploy/install.sh
 #
 # 环境变量：
 # Environment variables:
 #   STELLARIS_VERSION  指定版本，默认 latest（pin a release version, default: latest）
-#   STELLARIS_PREFIX   安装前缀，默认 /usr/local（installation prefix, default: /usr/local）
+#   STELLARIS_BIN_DIR  安装目录，默认 ~/.local/bin（遵循 XDG，无需 sudo）
 #   STELLARIS_MIRROR   GitHub release 镜像前缀（mirror URL prefix for GitHub releases）
 
 set -euo pipefail
 
 VERSION="${STELLARIS_VERSION:-}"
-PREFIX="${STELLARIS_PREFIX:-/usr/local}"
+# 优先用 XDG_BIN_HOME，否则 ~/.local/bin（XDG 惯例）
+_DEFAULT_BIN="${XDG_BIN_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/../bin}"
+BIN_DIR="${STELLARIS_BIN_DIR:-$_DEFAULT_BIN}"
+# 规范化路径（去掉 ..）
+BIN_DIR="$(cd "$(dirname "$BIN_DIR/x")" 2>/dev/null && pwd || echo "$BIN_DIR")"
 REPO="Veni222987/stellaris"
 MIRROR="${STELLARIS_MIRROR:-https://github.com/${REPO}/releases/download}"
 
@@ -66,16 +69,16 @@ else
 fi
 
 tar -xzf "$TMP/$TARBALL" -C "$TMP"
-# 在解压目录中定位二进制
-# Locate binary within extracted archive
-BIN="$(find "$TMP" -name stellaris-cli -type f | head -1)"
-[ -n "$BIN" ] || { echo "ERROR: tar 内没找到 stellaris-cli" >&2; exit 1; }
-install -m 0755 "$BIN" "$PREFIX/bin/stellaris-cli"
-echo "[install] ✓ 已安装 $PREFIX/bin/stellaris-cli"
+EXTRACTED_BIN="$(find "$TMP" -name stellaris-cli -type f | head -1)"
+[ -n "$EXTRACTED_BIN" ] || { echo "ERROR: tar 内没找到 stellaris-cli" >&2; exit 1; }
 
-# Linux root 环境自动写入 systemd unit 文件（不自动启用）
-# Install systemd unit on Linux root (not auto-enabled)
-if [ "$(uname -s)" = "Linux" ] && [ "$(id -u)" = "0" ] && command -v systemctl >/dev/null; then
+mkdir -p "$BIN_DIR"
+cp "$EXTRACTED_BIN" "$BIN_DIR/stellaris-cli"
+chmod 0755 "$BIN_DIR/stellaris-cli"
+echo "[install] ✓ 已安装 $BIN_DIR/stellaris-cli"
+
+# Linux 下检查 BIN_DIR 是否在 PATH 里，不在则提示
+if [ "$(uname -s)" = "Linux" ] && command -v systemctl >/dev/null && [ "$(id -u)" = "0" ]; then
     cat > /etc/systemd/system/stellaris-cli.service <<EOF
 [Unit]
 Description=Stellaris Planet 代理
@@ -84,11 +87,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=$PREFIX/bin/stellaris-cli start
-ExecStop=$PREFIX/bin/stellaris-cli stop
+ExecStart=$BIN_DIR/stellaris-cli start
+ExecStop=$BIN_DIR/stellaris-cli stop
 Restart=on-failure
 RestartSec=5
-User=root
 Environment=STELLARIS_CONFIG_DIR=/etc/stellaris
 
 [Install]
@@ -99,10 +101,17 @@ EOF
     echo "          先执行 'stellaris-cli orbit ...' 加入星系，再 'systemctl enable --now stellaris-cli'。"
 fi
 
+# 检查 BIN_DIR 是否在 PATH 里
+case ":$PATH:" in
+    *":$BIN_DIR:"*) ;;
+    *) echo "WARN: $BIN_DIR 不在 PATH 中，请在 shell 配置文件里添加：" >&2
+       echo "      export PATH=\"\$PATH:$BIN_DIR\"" >&2 ;;
+esac
+
 cat <<EOF
 
 下一步：
-  1. 加入星系：  $PREFIX/bin/stellaris-cli orbit <ip>:<port> <gid> --token <node-token>
-  2. 声明 Agent：$PREFIX/bin/stellaris-cli agent add <name> --type <openclaw|hermes|workbuddy> --binary <path>
-  3. 启动守护：  $PREFIX/bin/stellaris-cli start  （或 systemctl enable --now stellaris-cli）
+  1. 加入星系：  stellaris-cli orbit <ip>:<port> <gid> --token <node-token>
+  2. 声明 Agent：stellaris-cli agent add <name> --type <openclaw|hermes|workbuddy> --binary <path>
+  3. 启动守护：  stellaris-cli start  （或 systemctl enable --now stellaris-cli）
 EOF
