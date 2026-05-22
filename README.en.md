@@ -1,8 +1,12 @@
 # Stellaris
 
-A unified scheduling platform for heterogeneous AI Agents across distributed machines. Connect agents such as OpenClaw, HermesAgent, and Workbuddy running on any host; dispatch tasks in parallel, relay, or DAG orchestration mode; stream results back to a web console or API clients in real time.
+**English** | [中文](README.md)
 
-中文版: [README.md](README.md)
+**A unified scheduling platform for heterogeneous AI Agents across distributed machines. Connect agents such as OpenClaw, HermesAgent, and Workbuddy on any host; dispatch tasks in parallel, relay, or DAG mode; stream results to a web console or API clients in real time.**
+
+[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![CI](https://github.com/Veni222987/stellaris/actions/workflows/ci.yml/badge.svg)](https://github.com/Veni222987/stellaris/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ## Quick Start
 

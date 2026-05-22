@@ -1,8 +1,12 @@
 # Stellaris
 
-跨平台分布式异构 Agent 统一调度平台。将分散在不同机器上的 AI Agent（OpenClaw、HermesAgent、Workbuddy 等）纳入统一调度，支持并行、串行、DAG 编排三种模式，通过 Web 面板或 API 管理会话与输出流。
+[English](README.en.md) | **中文**
 
-English: [README.en.md](README.en.md)
+**跨平台分布式异构 Agent 统一调度平台。将分散在不同机器上的 AI Agent 纳入统一调度，支持并行、串行、DAG 编排，通过 Web 面板或 API 管理会话与输出流。**
+
+[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![CI](https://github.com/Veni222987/stellaris/actions/workflows/ci.yml/badge.svg)](https://github.com/Veni222987/stellaris/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ## 快速启动
 
