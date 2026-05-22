@@ -15,9 +15,21 @@
 
 set -euo pipefail
 
-VERSION="${STELLARIS_VERSION:-latest}"
+VERSION="${STELLARIS_VERSION:-}"
 PREFIX="${STELLARIS_PREFIX:-/usr/local}"
-MIRROR="${STELLARIS_MIRROR:-https://github.com/Veni222987/stellaris/releases/download}"
+REPO="Veni222987/stellaris"
+MIRROR="${STELLARIS_MIRROR:-https://github.com/${REPO}/releases/download}"
+
+# VERSION 为空时通过 API 解析最新 tag
+resolve_version() {
+    local tag
+    tag="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+        | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')"
+    [ -n "$tag" ] || { echo "ERROR: 无法获取最新版本号，请手动设置 STELLARIS_VERSION" >&2; exit 1; }
+    echo "$tag"
+}
+
+[ -n "$VERSION" ] || VERSION="$(resolve_version)"
 
 detect_platform() {
     local os arch
