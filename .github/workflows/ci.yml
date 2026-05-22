@@ -22,4 +22,8 @@ jobs:
             shared/token/go.sum
 
       - name: 运行测试
-        run: go test ./...
+        run: |
+          for mod in agent server shared/protocol shared/token; do
+            echo "==> $mod"
+            (cd "$mod" && go test ./...)
+          done
