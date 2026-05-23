@@ -21,9 +21,5 @@ jobs:
             shared/protocol/go.sum
             shared/token/go.sum
 
-      - name: 运行测试
-        run: |
-          for mod in agent server shared/protocol shared/token; do
-            echo "==> $mod"
-            (cd "$mod" && go test ./...)
-          done
+      - name: 运行单测（集成测试由 //go:build integration 隔离，不在此 job 跑）
+        run: make test

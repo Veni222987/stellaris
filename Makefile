@@ -1,4 +1,4 @@
-.PHONY: build build-core build-cli up down test e2e clean docker-build-core docker-build-cli docker-build-web docker-build release-build
+.PHONY: build build-core build-cli up down test test-integration e2e clean docker-build-core docker-build-cli docker-build-web docker-build release-build
 
 build: build-core build-cli
 
@@ -15,7 +15,17 @@ down:
 	docker compose -f deploy/docker-compose.yml down
 
 test:
-	go test ./... -v -race
+	@for mod in agent server shared/protocol shared/token; do \
+		echo "==> $$mod"; \
+		(cd $$mod && go test ./... -race) || exit 1; \
+	done
+
+# 集成测试：需要先 `make up` 起 postgres / redis / emqx
+test-integration:
+	@for mod in server; do \
+		echo "==> $$mod (integration)"; \
+		(cd $$mod && go test -tags=integration ./... -race) || exit 1; \
+	done
 
 e2e:
 	cd tests/e2e && go test ./... -v -tags=e2e -timeout 120s
