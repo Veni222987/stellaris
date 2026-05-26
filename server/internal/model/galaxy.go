@@ -27,6 +27,26 @@ func (m *GalaxyModel) Create(ctx context.Context, gid, name, nodeTokenHash strin
 	return id, err
 }
 
+func (m *GalaxyModel) ListByUser(ctx context.Context, ownerUserID int64) ([]Galaxy, error) {
+	rows, err := m.db.Query(ctx,
+		`SELECT id, gid, name, node_token_hash, owner_user_id FROM galaxies
+		 WHERE owner_user_id = $1 ORDER BY id DESC`,
+		ownerUserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Galaxy
+	for rows.Next() {
+		var g Galaxy
+		if err := rows.Scan(&g.ID, &g.GID, &g.Name, &g.NodeTokenHash, &g.OwnerUserID); err != nil {
+			return nil, err
+		}
+		out = append(out, g)
+	}
+	return out, nil
+}
+
 func (m *GalaxyModel) FindByGID(ctx context.Context, gid string) (*Galaxy, error) {
 	var g Galaxy
 	err := m.db.QueryRow(ctx,

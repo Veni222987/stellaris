@@ -44,7 +44,8 @@ func (l *PlanetJoinLogic) PlanetJoin(req *types.PlanetJoinReq) (*types.PlanetJoi
 	}
 	planetUUID := hex.EncodeToString(b[:])
 
-	planetID, err := l.svcCtx.Planets.Upsert(l.ctx, planetUUID, req.GID, req.IP, req.Hostname, req.OS)
+	// actualUUID 是 DB 里稳定保留的 UUID；同 hostname 重入时不会变。
+	planetID, actualUUID, err := l.svcCtx.Planets.Upsert(l.ctx, planetUUID, req.GID, req.IP, req.Hostname, req.OS)
 	if err != nil {
 		return nil, err
 	}
@@ -55,5 +56,5 @@ func (l *PlanetJoinLogic) PlanetJoin(req *types.PlanetJoinReq) (*types.PlanetJoi
 	if err != nil {
 		return nil, err
 	}
-	return &types.PlanetJoinResp{PlanetUUID: planetUUID, PlanetJwt: t}, nil
+	return &types.PlanetJoinResp{PlanetUUID: actualUUID, PlanetJwt: t}, nil
 }

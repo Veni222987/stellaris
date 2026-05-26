@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Stellaris Planet 代理 launchd 用户级 LaunchAgent 模板（macOS）。
+  `stellaris-cli orbit` 会自动写一份等价内容到 ~/Library/LaunchAgents/，本文件供手动安装参考。
+
+  手动安装：
+    cp deploy/dev.stellaris.cli.plist ~/Library/LaunchAgents/
+    # 把下面的 /usr/local/bin/stellaris-cli 与 STELLARIS_CONFIG_DIR 改成你的实际路径
+    launchctl load -w ~/Library/LaunchAgents/dev.stellaris.cli.plist
+
+  KeepAlive=true 实现崩溃自恢复，RunAtLoad/登录时自启。
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>dev.stellaris.cli</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/stellaris-cli</string>
+    <string>start</string>
+    <string>--foreground</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>STELLARIS_CONFIG_DIR</key><string>/Users/CHANGE_ME/.stellaris</string>
+  </dict>
+  <key>StandardOutPath</key><string>/dev/null</string>
+  <key>StandardErrorPath</key><string>/Users/CHANGE_ME/.stellaris/daemon.log</string>
+</dict>
+</plist>

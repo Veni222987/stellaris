@@ -8,14 +8,23 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stellaris/stellaris/agent/internal/daemon"
+	"github.com/stellaris/stellaris/agent/internal/service"
 )
 
 func init() { rootCmd.AddCommand(stopCmd) }
 
 var stopCmd = &cobra.Command{
 	Use:   "stop",
-	Short: "向守护进程发 SIGTERM 让它优雅退出",
+	Short: "停止守护进程（由 OS 服务托管则走服务，否则发 SIGTERM）",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// 由 OS 服务托管时走服务停止；否则直接 SIGTERM（避免 KeepAlive/Restart 立刻拉回）。
+		if managed, err := service.Stop(); managed {
+			if err != nil {
+				return err
+			}
+			fmt.Println("✓ 已通过 OS 服务停止守护进程")
+			return nil
+		}
 		pid, err := daemon.ReadPID()
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {

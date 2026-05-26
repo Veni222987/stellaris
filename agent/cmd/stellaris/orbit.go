@@ -16,10 +16,14 @@ import (
 	"github.com/stellaris/stellaris/agent/internal/config"
 )
 
-var orbitToken string
+var (
+	orbitToken   string
+	orbitNoStart bool
+)
 
 func init() {
 	orbitCmd.Flags().StringVar(&orbitToken, "token", "", "node-token (必填，来自调度中心 galaxy/create 返回)")
+	orbitCmd.Flags().BoolVar(&orbitNoStart, "no-start", false, "只加入星系，不自动拉起守护进程")
 	rootCmd.AddCommand(orbitCmd)
 }
 
@@ -73,7 +77,11 @@ var orbitCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("✓ 已加入星系 %s，本机 planet_uuid=%s\n", gid, r.PlanetUUID)
-		return nil
+		if orbitNoStart {
+			fmt.Println("（--no-start：未自动启动守护进程，可手动执行 `stellaris-cli start`）")
+			return nil
+		}
+		return launch()
 	},
 }
 

@@ -33,7 +33,7 @@ func (l *PlanetHeartbeatLogic) PlanetHeartbeat(req *types.HeartbeatReq) (*types.
 		return nil, err
 	}
 	for _, a := range req.Agents {
-		if err := l.svcCtx.Agents.Upsert(l.ctx,
+		if _, err := l.svcCtx.Agents.Upsert(l.ctx,
 			a.AgentUUID, planetID, a.Type, a.Name,
 			a.Models, a.CapabilitiesJSON, a.Status); err != nil {
 			return nil, err

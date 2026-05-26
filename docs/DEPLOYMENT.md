@@ -72,7 +72,7 @@ sudo bash deploy/install.sh
 - `STELLARIS_PREFIX` 安装前缀（默认 `/usr/local`）
 - `STELLARIS_MIRROR` GitHub release 镜像 URL 前缀
 
-### 3.2 加入星系
+### 3.2 加入星系（一步到位）
 
 ```bash
 stellaris-cli orbit <core-ip>:4228 <gid> --token <node-token>
@@ -80,19 +80,41 @@ stellaris-cli orbit <core-ip>:4228 <gid> --token <node-token>
 
 `<node-token>` 来自面板"星系管理"页创建星系时返回（仅一次显示）。
 
-### 3.3 声明本机 Agent
+`orbit` 成功后会**自动拉起守护进程**：优先把自身注册成 OS 服务（Linux=systemd，root 用 system unit、否则 user unit；macOS=launchd 用户级 LaunchAgent）实现开机自启与崩溃恢复；装不了服务则退化为脱离终端的后台进程（崩溃仍会被进程内 supervisor 自动重启）。只想加入不自动起，加 `--no-start`。
+
+### 3.3 Agent 自动发现（无需手动 add）
+
+守护进程启动时会用 `which` 在 `PATH` 里探测已知类型的可执行文件（`openclaw` / `hermes` / `workbuddy`），找到即自动注册。查看当前生效的 agent：
 
 ```bash
-stellaris-cli agent add claw-1 --type openclaw --binary /usr/local/bin/openclaw --args "chat --stream"
-stellaris-cli agent list
+stellaris-cli agent list   # 每项标注 [auto] 自动发现 / [declared] 手动覆盖
 ```
 
-### 3.4 启动守护进程
+仅当需要**自定义** binary 路径 / 启动参数 / 环境变量，或为同一类型注册多个实例时，才用覆盖机制（写入 `agents.d/<name>.yaml`）：
 
 ```bash
-sudo systemctl enable --now stellaris-cli
-sudo systemctl status stellaris-cli
+stellaris-cli agent add claw-2 --type openclaw --binary /opt/openclaw --args "chat --stream"
+stellaris-cli agent remove claw-2
+```
+
+### 3.4 查看状态与日志
+
+```bash
+stellaris-cli status        # 配置 / 守护进程 / 服务托管 / 日志路径 / 已发现的 agent
+stellaris-cli logs -f       # 跟随守护进程日志（文件位于 <config-dir>/daemon.log）
+stellaris-cli stop          # 停止（由服务托管则走服务，否则发 SIGTERM）
+```
+
+底层服务也可直接操作：
+
+```bash
+# Linux (systemd)
+systemctl status stellaris-cli            # root / system unit
+systemctl --user status stellaris-cli     # 非 root / user unit
 journalctl -u stellaris-cli -f
+
+# macOS (launchd)
+launchctl list | grep stellaris
 ```
 
 ## 4. 升级
@@ -114,8 +136,8 @@ docker exec -i deploy-postgres-1 psql -U stellaris -d stellaris < server/migrati
 ### 4.2 Planet 升级
 
 ```bash
-sudo bash deploy/install.sh   # 重跑同一脚本即可覆盖
-sudo systemctl restart stellaris-cli
+sudo bash deploy/install.sh   # 重跑同一脚本即可覆盖二进制
+stellaris-cli stop && stellaris-cli start   # 跨平台重启守护进程
 ```
 
 ## 5. 卸载

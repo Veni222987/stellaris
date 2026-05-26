@@ -20,21 +20,22 @@ type PlanetModel struct{ db *pgxpool.Pool }
 
 func NewPlanetModel(db *pgxpool.Pool) *PlanetModel { return &PlanetModel{db: db} }
 
-// Upsert 用于 Planet 首次 join 或重新上线时落库。
-func (m *PlanetModel) Upsert(ctx context.Context, planetUUID, gid, ip, hostname, osName string) (int64, error) {
+// Upsert 按 (gid, hostname) 去重：同一主机重新 orbit 时复用已有行，UUID 保持稳定。
+// 返回 (id, actualPlanetUUID, error)；若行已存在则 actualPlanetUUID 是原有值。
+func (m *PlanetModel) Upsert(ctx context.Context, planetUUID, gid, ip, hostname, osName string) (int64, string, error) {
 	var id int64
+	var actualUUID string
 	err := m.db.QueryRow(ctx, `
 		INSERT INTO planets (planet_uuid, gid, ip, hostname, os, status, last_heartbeat)
 		VALUES ($1, $2, $3, $4, $5, 'online', NOW())
-		ON CONFLICT (planet_uuid) DO UPDATE SET
+		ON CONFLICT (gid, hostname) DO UPDATE SET
 			ip = EXCLUDED.ip,
-			hostname = EXCLUDED.hostname,
 			os = EXCLUDED.os,
 			status = 'online',
 			last_heartbeat = NOW()
-		RETURNING id`,
-		planetUUID, gid, ip, hostname, osName).Scan(&id)
-	return id, err
+		RETURNING id, planet_uuid`,
+		planetUUID, gid, ip, hostname, osName).Scan(&id, &actualUUID)
+	return id, actualUUID, err
 }
 
 func (m *PlanetModel) FindByID(ctx context.Context, id int64) (*Planet, error) {

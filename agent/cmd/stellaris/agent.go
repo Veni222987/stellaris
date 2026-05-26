@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stellaris/stellaris/agent/internal/config"
+	"github.com/stellaris/stellaris/agent/internal/daemon"
 	"github.com/stellaris/stellaris/agent/internal/discovery"
 	"gopkg.in/yaml.v3"
 )
@@ -20,26 +21,32 @@ func init() {
 
 var agentCmd = &cobra.Command{
 	Use:   "agent",
-	Short: "管理本机声明的 Agent 配置（位于 agents.d 目录）",
+	Short: "查看/覆盖本机 Agent（默认自动发现，agents.d 为可选覆盖）",
 }
 
 var agentListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "列出当前已声明的 Agent",
+	Short: "列出当前生效的 Agent（PATH 自动发现 + agents.d 覆盖）",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		dir := config.AgentsDirPath()
-		decls, err := discovery.Scan(dir)
+		resolved, err := daemon.ResolveAgents(dir)
 		if err != nil {
 			return err
 		}
-		if len(decls) == 0 {
-			fmt.Printf("（%s 为空）\n", dir)
+		if len(resolved) == 0 {
+			fmt.Println("未发现任何 Agent。")
+			fmt.Println("  · 已知类型(openclaw/hermes/workbuddy)不在 PATH 中")
+			fmt.Printf("  · 覆盖目录 agents.d 也为空: %s\n", dir)
 			return nil
 		}
-		fmt.Printf("# %s\n", dir)
-		for _, d := range decls {
-			fmt.Printf("- %s (type=%s binary=%s)\n", d.Name, d.Type, d.Binary)
+		for _, ra := range resolved {
+			binary := ra.Decl.Binary
+			if binary == "" {
+				binary = "<默认>"
+			}
+			fmt.Printf("- %s (type=%s binary=%s) [%s]\n", ra.Decl.Name, ra.Decl.Type, binary, ra.Source)
 		}
+		fmt.Printf("\n覆盖目录 agents.d: %s\n", dir)
 		return nil
 	},
 }

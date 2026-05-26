@@ -14,6 +14,7 @@ import (
 	"github.com/stellaris/stellaris/server/internal/scheduler"
 	"github.com/stellaris/stellaris/server/internal/ticket"
 	"github.com/stellaris/stellaris/server/internal/ws"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ServiceContext 聚合所有依赖：基础设施（DB / Redis / MQTT broker）+ Model 仓库 + 业务组件。
@@ -46,6 +47,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	mqttClient := mustNewMQTT(c)
 
 	users := model.NewUserModel(db)
+	seedAdmin(users, c)
 	galaxies := model.NewGalaxyModel(db)
 	planets := model.NewPlanetModel(db)
 	agents := model.NewAgentModel(db)
@@ -81,6 +83,21 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Relay:        relay,
 		WSHub:        hub,
 		WSTickets:    ticket.NewStore(5 * time.Minute),
+	}
+}
+
+// seedAdmin 把 .env / 配置里的单一管理员账号写入 users 表（按 email upsert）。
+// 全局只此一个账号，注册接口已移除。
+func seedAdmin(users *model.UserModel, c config.Config) {
+	if c.Admin.Email == "" || c.Admin.Password == "" {
+		panic("Admin.Email / Admin.Password 未配置（ADMIN_EMAIL / ADMIN_PASSWORD）")
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(c.Admin.Password), bcrypt.DefaultCost)
+	if err != nil {
+		panic(fmt.Errorf("hash admin password: %w", err))
+	}
+	if _, err := users.Upsert(context.Background(), c.Admin.Email, string(hash)); err != nil {
+		panic(fmt.Errorf("seed admin user: %w", err))
 	}
 }
 

@@ -11,12 +11,13 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/stellaris-cli start
+ExecStart=/usr/local/bin/stellaris-cli start --foreground
 ExecStop=/usr/local/bin/stellaris-cli stop
 Restart=on-failure
 RestartSec=5
 User=root
 Environment=STELLARIS_CONFIG_DIR=/etc/stellaris
+StandardError=append:/etc/stellaris/daemon.log
 
 # 安全加固
 NoNewPrivileges=true

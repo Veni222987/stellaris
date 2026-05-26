@@ -18,15 +18,23 @@ type consumer struct {
 	registry *adapter.Registry
 }
 
-func newConsumer(cfg *config.Config, reg *adapter.Registry) (*consumer, error) {
+func newConsumer(ctx context.Context, cfg *config.Config, reg *adapter.Registry) (*consumer, error) {
 	opts := mqtt.NewClientOptions().
 		AddBroker(cfg.MQTTBroker).
 		SetClientID("planet-" + cfg.PlanetUUID).
 		SetAutoReconnect(true).
 		SetConnectRetry(true)
 	c := mqtt.NewClient(opts)
-	if t := c.Connect(); t.Wait() && t.Error() != nil {
-		return nil, t.Error()
+	tok := c.Connect()
+	// ConnectRetry 下 token 仅在连上时完成；用 ctx 让"broker 未就绪"期间仍能被 SIGTERM 打断。
+	select {
+	case <-ctx.Done():
+		c.Disconnect(0)
+		return nil, ctx.Err()
+	case <-tok.Done():
+		if err := tok.Error(); err != nil {
+			return nil, err
+		}
 	}
 	return &consumer{cfg: cfg, client: c, registry: reg}, nil
 }
@@ -47,6 +55,13 @@ func (c *consumer) start(ctx context.Context) error {
 }
 
 func (c *consumer) execute(ctx context.Context, task protocol.TaskMessage) {
+	// 单个任务的 panic 不应拖垮整个守护进程：兜住后回传 error chunk。
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[task] panic 已恢复 task=%s: %v", task.TaskUUID, r)
+			c.publishError(task.TaskUUID, "internal panic")
+		}
+	}()
 	log.Printf("[task] 收到 %s → agent=%s", task.TaskUUID, task.AgentUUID)
 	a, err := c.registry.Get(task.AgentUUID)
 	if err != nil {

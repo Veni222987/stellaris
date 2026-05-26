@@ -18,14 +18,8 @@ type (
 )
 
 // ===== 鉴权 =====
+// 全局只有一个账号（来自 .env 的 ADMIN_EMAIL / ADMIN_PASSWORD，启动时落库），不开放注册。
 type (
-	RegisterReq {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	RegisterResp {
-		Token string `json:"token"`
-	}
 	LoginReq {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -39,9 +33,6 @@ type (
 	group: auth
 )
 service core-api {
-	@handler register
-	post /api/auth/register (RegisterReq) returns (RegisterResp)
-
 	@handler login
 	post /api/auth/login (LoginReq) returns (LoginResp)
 }

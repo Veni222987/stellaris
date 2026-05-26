@@ -12,6 +12,10 @@ PlanetJwt:
   AccessSecret: ${PLANET_JWT_SECRET:-please-change-in-prod-planet}
   AccessExpire: 604800
 
+Admin:
+  Email: ${ADMIN_EMAIL:-admin@stellaris.local}
+  Password: ${ADMIN_PASSWORD:-please-change-in-prod}
+
 Postgres:
   DataSource: ${POSTGRES_DSN:-postgres://stellaris:stellaris@postgres:5432/stellaris?sslmode=disable}
 

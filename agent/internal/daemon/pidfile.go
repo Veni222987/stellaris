@@ -76,6 +76,15 @@ func ReadPID() (int, error) {
 	return pid, nil
 }
 
+// Running 读 pid 文件并探测进程是否存活，返回 (pid, 是否在跑)。
+func Running() (int, bool) {
+	pid, err := ReadPID()
+	if err != nil {
+		return 0, false
+	}
+	return pid, processAlive(pid)
+}
+
 // processAlive 用 Signal(0) 探测进程是否存活（Unix 语义）。
 func processAlive(pid int) bool {
 	p, err := os.FindProcess(pid)

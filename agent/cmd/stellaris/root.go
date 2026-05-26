@@ -1,10 +1,11 @@
 // Package stellaris 是 stellaris-cli 所有 Cobra 子命令的容器。
 //
 // 命令一览：
-//   stellaris-cli orbit <ip>:<port> <gid> --token <node-token>   加入星系
-//   stellaris-cli start                                          前台运行守护进程
-//   stellaris-cli stop / status                                  （M2 实现）
-//   stellaris-cli agent list / discover / add                    （M2 实现）
+//   stellaris-cli orbit <ip>:<port> <gid> --token <node-token>   加入星系并自动拉起守护进程
+//   stellaris-cli start [--foreground]                           启动守护进程（默认后台/OS 服务）
+//   stellaris-cli stop / status                                  停止 / 查看状态
+//   stellaris-cli logs [-f]                                      查看守护进程日志
+//   stellaris-cli agent list / add / remove                      查看（自动发现）/ 覆盖 Agent
 package stellaris
 
 import (

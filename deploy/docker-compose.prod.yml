@@ -11,6 +11,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ../server/migrations/001_initial.up.sql:/docker-entrypoint-initdb.d/001_initial.up.sql
       - ../server/migrations/002_m3_relay_orchestration.up.sql:/docker-entrypoint-initdb.d/002_m3_relay_orchestration.up.sql
+      - ../server/migrations/003_stable_uuids.up.sql:/docker-entrypoint-initdb.d/003_stable_uuids.up.sql
     restart: unless-stopped
 
   redis:
@@ -36,6 +37,8 @@ services:
       MQTT_BROKER: "tcp://emqx:1883"
       USER_JWT_SECRET: "${USER_JWT_SECRET:?USER_JWT_SECRET must be set}"
       PLANET_JWT_SECRET: "${PLANET_JWT_SECRET:?PLANET_JWT_SECRET must be set}"
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@stellaris.local}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set}"
     ports:
       - "4228:4228"
     restart: unless-stopped

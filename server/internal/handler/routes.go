@@ -24,16 +24,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/api/auth/login",
 				Handler: auth.LoginHandler(serverCtx),
 			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/api/auth/register",
-				Handler: auth.RegisterHandler(serverCtx),
-			},
 		},
 	)
 
 	server.AddRoutes(
 		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/api/galaxy/list",
+				Handler: galaxy.ListGalaxyHandler(serverCtx),
+			},
 			{
 				Method:  http.MethodPost,
 				Path:    "/api/galaxy/create",
@@ -43,6 +43,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodGet,
 				Path:    "/api/galaxy/:gid/agents",
 				Handler: galaxy.GalaxyAgentsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/api/galaxy/:gid/detail",
+				Handler: galaxy.GalaxyDetailHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.UserJwt.AccessSecret),
@@ -95,6 +100,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodPost,
 				Path:    "/api/session/create",
 				Handler: session.SessionCreateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/api/session/list",
+				Handler: session.SessionListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/api/session/:session_uuid/transcript",
+				Handler: session.SessionTranscriptHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,

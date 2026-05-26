@@ -10,6 +10,10 @@ PlanetJwt:
   AccessSecret: "stellaris-planet-secret-change-me"
   AccessExpire: 604800
 
+Admin:
+  Email: ${ADMIN_EMAIL:-admin@stellaris.local}
+  Password: ${ADMIN_PASSWORD:-stellaris}
+
 Postgres:
   DataSource: "postgres://stellaris:stellaris@localhost:5432/stellaris?sslmode=disable"
 

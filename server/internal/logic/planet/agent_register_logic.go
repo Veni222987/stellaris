@@ -34,9 +34,10 @@ func (l *AgentRegisterLogic) AgentRegister(req *types.AgentRegisterReq) (*types.
 	}
 	agentUUID := hex.EncodeToString(b[:])
 
-	if err := l.svcCtx.Agents.Upsert(l.ctx, agentUUID, planetID,
-		req.Type, req.Name, req.Models, req.CapabilitiesJSON, "ready"); err != nil {
+	actualUUID, err := l.svcCtx.Agents.Upsert(l.ctx, agentUUID, planetID,
+		req.Type, req.Name, req.Models, req.CapabilitiesJSON, "ready")
+	if err != nil {
 		return nil, err
 	}
-	return &types.AgentRegisterResp{AgentUUID: agentUUID}, nil
+	return &types.AgentRegisterResp{AgentUUID: actualUUID}, nil
 }

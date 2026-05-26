@@ -19,9 +19,10 @@ type AgentModel struct{ db *pgxpool.Pool }
 
 func NewAgentModel(db *pgxpool.Pool) *AgentModel { return &AgentModel{db: db} }
 
-// Upsert 按 agent_uuid 写入或更新；models / capabilities 序列化为 JSONB。
+// Upsert 按 (planet_id, name) 去重：同一 planet 重启时复用已有 agent_uuid。
+// 返回 (actualAgentUUID, error)；若行已存在则返回原有 UUID。
 func (m *AgentModel) Upsert(ctx context.Context, agentUUID string, planetID int64,
-	typ, name string, models []string, capabilities map[string]any, status string) error {
+	typ, name string, models []string, capabilities map[string]any, status string) (string, error) {
 
 	if models == nil {
 		models = []string{}
@@ -31,17 +32,18 @@ func (m *AgentModel) Upsert(ctx context.Context, agentUUID string, planetID int6
 	}
 	modelsJSON, _ := json.Marshal(models)
 	capsJSON, _ := json.Marshal(capabilities)
-	_, err := m.db.Exec(ctx, `
+	var actualUUID string
+	err := m.db.QueryRow(ctx, `
 		INSERT INTO agents (agent_uuid, planet_id, type, name, models_json, capabilities_json, status)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		ON CONFLICT (agent_uuid) DO UPDATE SET
+		ON CONFLICT (planet_id, name) DO UPDATE SET
 			type = EXCLUDED.type,
-			name = EXCLUDED.name,
 			models_json = EXCLUDED.models_json,
 			capabilities_json = EXCLUDED.capabilities_json,
-			status = EXCLUDED.status`,
-		agentUUID, planetID, typ, name, modelsJSON, capsJSON, status)
-	return err
+			status = EXCLUDED.status
+		RETURNING agent_uuid`,
+		agentUUID, planetID, typ, name, modelsJSON, capsJSON, status).Scan(&actualUUID)
+	return actualUUID, err
 }
 
 func (m *AgentModel) FindByUUID(ctx context.Context, agentUUID string) (*AgentRow, error) {

@@ -18,6 +18,13 @@ type Config struct {
 		AccessExpire int64
 	}
 
+	// Admin 是全局共用的单一账号，账号密码来自 .env / 环境变量。
+	// 启动时按 Email upsert 进 users 表，保证 galaxies.owner_user_id 外键有真实用户行。
+	Admin struct {
+		Email    string
+		Password string
+	}
+
 	Postgres struct {
 		DataSource string
 	}

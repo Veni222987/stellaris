@@ -28,6 +28,18 @@ func (m *UserModel) Create(ctx context.Context, email, passwordHash string) (int
 	return id, err
 }
 
+// Upsert 按 email 去重写入用户：已存在则更新 password_hash。
+// 用于启动时把 .env 里的单一管理员账号落库，保证 galaxies 外键有真实用户行。
+func (m *UserModel) Upsert(ctx context.Context, email, passwordHash string) (int64, error) {
+	var id int64
+	err := m.db.QueryRow(ctx,
+		`INSERT INTO users (email, password_hash) VALUES ($1, $2)
+		 ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash
+		 RETURNING id`,
+		email, passwordHash).Scan(&id)
+	return id, err
+}
+
 func (m *UserModel) FindByEmail(ctx context.Context, email string) (*User, error) {
 	var u User
 	err := m.db.QueryRow(ctx,

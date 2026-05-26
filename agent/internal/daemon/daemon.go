@@ -8,7 +8,6 @@ import (
 
 	"github.com/stellaris/stellaris/agent/internal/adapter"
 	"github.com/stellaris/stellaris/agent/internal/config"
-	"github.com/stellaris/stellaris/agent/internal/discovery"
 )
 
 type Daemon struct {
@@ -16,44 +15,27 @@ type Daemon struct {
 	registry *adapter.Registry
 }
 
-// New 加载配置 + 扫描 agent 声明并注册 adapter。
+// New 加载配置 + 解析 agent（PATH 自动发现 + agents.d 覆盖）并注册 adapter。
 func New(cfg *config.Config) (*Daemon, error) {
 	reg := adapter.NewRegistry()
 	if cfg.AgentsDir == "" {
 		cfg.AgentsDir = "/etc/stellaris/agents.d"
 	}
-	decls, err := discovery.Scan(cfg.AgentsDir)
+	resolved, err := ResolveAgents(cfg.AgentsDir)
 	if err != nil {
 		return nil, err
 	}
 	r := newRegistrar(cfg)
-	for _, d := range decls {
-		var a adapter.Agent
-		switch d.Type {
-		case "openclaw":
-			a = adapter.NewOpenClawAdapter(adapter.OpenClawConfig{
-				Name: d.Name, Binary: d.Binary, Args: d.Args, Env: d.Env,
-			})
-		case "hermes":
-			a = adapter.NewHermesAdapter(adapter.HermesConfig{
-				Name: d.Name, Binary: d.Binary, Args: d.Args, Env: d.Env,
-			})
-		case "workbuddy":
-			a = adapter.NewWorkbuddyAdapter(adapter.WorkbuddyConfig{
-				Name: d.Name, Binary: d.Binary, Args: d.Args, Env: d.Env,
-			})
-		default:
-			a = adapter.NewStdioAdapter(adapter.StdioConfig{
-				Name: d.Name, Type: d.Type, Binary: d.Binary, Args: d.Args, Env: d.Env,
-			})
-		}
+	for _, ra := range resolved {
+		d := ra.Decl
+		a := adapter.Build(d.Name, d.Type, d.Binary, d.Args, d.Env)
 		uuid, err := r.Register(d.Name, d.Type, a.Capabilities())
 		if err != nil {
 			log.Printf("[daemon] 注册 agent %s 失败: %v", d.Name, err)
 			continue
 		}
 		reg.Set(uuid, a)
-		log.Printf("[daemon] 已注册 agent name=%s type=%s uuid=%s", d.Name, d.Type, uuid)
+		log.Printf("[daemon] 已注册 agent name=%s type=%s source=%s uuid=%s", d.Name, d.Type, ra.Source, uuid)
 	}
 	return &Daemon{cfg: cfg, registry: reg}, nil
 }
@@ -62,7 +44,7 @@ func New(cfg *config.Config) (*Daemon, error) {
 func (d *Daemon) Run(ctx context.Context) error {
 	go newHeartbeat(d.cfg, d.registry).run(ctx)
 
-	c, err := newConsumer(d.cfg, d.registry)
+	c, err := newConsumer(ctx, d.cfg, d.registry)
 	if err != nil {
 		return err
 	}

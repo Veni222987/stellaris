@@ -77,8 +77,9 @@ cp "$EXTRACTED_BIN" "$BIN_DIR/stellaris-cli"
 chmod 0755 "$BIN_DIR/stellaris-cli"
 echo "[install] ✓ 已安装 $BIN_DIR/stellaris-cli"
 
-# Linux 下检查 BIN_DIR 是否在 PATH 里，不在则提示
+# Linux + root + systemd 时预置一份 system unit（orbit 时也会自动安装/覆盖，这里只是提前就位）。
 if [ "$(uname -s)" = "Linux" ] && command -v systemctl >/dev/null && [ "$(id -u)" = "0" ]; then
+    mkdir -p /etc/stellaris
     cat > /etc/systemd/system/stellaris-cli.service <<EOF
 [Unit]
 Description=Stellaris Planet 代理
@@ -87,18 +88,18 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=$BIN_DIR/stellaris-cli start
+ExecStart=$BIN_DIR/stellaris-cli start --foreground
 ExecStop=$BIN_DIR/stellaris-cli stop
 Restart=on-failure
 RestartSec=5
 Environment=STELLARIS_CONFIG_DIR=/etc/stellaris
+StandardError=append:/etc/stellaris/daemon.log
 
 [Install]
 WantedBy=multi-user.target
 EOF
     systemctl daemon-reload
-    echo "[install] ✓ systemd unit 已就位（未自动 enable）。"
-    echo "          先执行 'stellaris-cli orbit ...' 加入星系，再 'systemctl enable --now stellaris-cli'。"
+    echo "[install] ✓ systemd unit 已就位。'stellaris-cli orbit' 会自动 enable+start，无需手动操作。"
 fi
 
 # 检查 BIN_DIR 是否在 PATH 里
@@ -110,8 +111,10 @@ esac
 
 cat <<EOF
 
-下一步：
-  1. 加入星系：  stellaris-cli orbit <ip>:<port> <gid> --token <node-token>
-  2. 声明 Agent：stellaris-cli agent add <name> --type <openclaw|hermes|workbuddy> --binary <path>
-  3. 启动守护：  stellaris-cli start  （或 systemctl enable --now stellaris-cli）
+下一步（一步到位）：
+  stellaris-cli orbit <ip>:<port> <gid> --token <node-token>
+
+  · 加入星系后会自动拉起守护进程（OS 服务 / 后台进程，崩溃自恢复）
+  · 已安装的 openclaw/hermes/workbuddy 会被自动发现，无需手动声明
+  · 查看状态：stellaris-cli status     跟随日志：stellaris-cli logs -f
 EOF

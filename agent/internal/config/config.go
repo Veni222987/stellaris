@@ -18,7 +18,9 @@ type Config struct {
 	AgentsDir  string `yaml:"agents_dir,omitempty"` // 缺省时 daemon 落到 /etc/stellaris/agents.d
 }
 
-func dir() string {
+// Dir 返回本机配置目录（含 config.yaml / daemon.pid / daemon.log）。
+// 优先 STELLARIS_CONFIG_DIR，否则 ~/.stellaris。
+func Dir() string {
 	if d := os.Getenv("STELLARIS_CONFIG_DIR"); d != "" {
 		return d
 	}
@@ -26,10 +28,10 @@ func dir() string {
 	return filepath.Join(home, ".stellaris")
 }
 
-func path() string { return filepath.Join(dir(), "config.yaml") }
+func path() string { return filepath.Join(Dir(), "config.yaml") }
 
 func Save(c *Config) error {
-	if err := os.MkdirAll(dir(), 0o700); err != nil {
+	if err := os.MkdirAll(Dir(), 0o700); err != nil {
 		return err
 	}
 	data, err := yaml.Marshal(c)
