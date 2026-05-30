@@ -28,8 +28,9 @@ func New(agents *model.AgentModel, planets *model.PlanetModel, tasks *model.Task
 
 // Dispatch 给指定 agent 创建一个 Task 并把 prompt 通过 MQTT 推到所在 Planet。
 // parentTaskID = nil 表示用户消息直接派发（Parallel / Relay 头 / DAG 根）；nodeID = "" 表示非 Orchestration 模式。
+// history 为本次消息之前的会话历史；中间节点（relay/orchestration advance）传 nil。
 func (s *Scheduler) Dispatch(ctx context.Context, messageID int64, sessionUUID, gid,
-	agentUUID, prompt string, parentTaskID *int64, nodeID string) (string, error) {
+	agentUUID, prompt string, history []protocol.HistoryEntry, parentTaskID *int64, nodeID string) (string, error) {
 
 	a, err := s.agents.FindByUUID(ctx, agentUUID)
 	if err != nil {
@@ -57,6 +58,7 @@ func (s *Scheduler) Dispatch(ctx context.Context, messageID int64, sessionUUID, 
 		Prompt:      prompt,
 		Stream:      true,
 		TimeoutSec:  120,
+		History:     history,
 	}); err != nil {
 		_ = s.tasks.UpdateStatus(ctx, taskUUID, "failed")
 		return "", err

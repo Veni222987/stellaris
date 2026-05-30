@@ -6,9 +6,16 @@ package adapter
 
 import "context"
 
+// HistoryEntry 代表一条历史消息。
+type HistoryEntry struct {
+	Role    string // "user" 或 "assistant"
+	Content string
+}
+
 type ChatRequest struct {
-	Prompt string
-	Model  string
+	Prompt  string
+	Model   string
+	History []HistoryEntry // 本次消息之前的会话历史，按时间升序
 }
 
 type Chunk struct {

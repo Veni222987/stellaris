@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/stellaris/stellaris/server/internal/model"
+	"github.com/stellaris/stellaris/shared/protocol"
 )
 
 // Orchestrator 负责 DAG 模式调度：根节点由用户消息触发；后续节点由 task done 事件推进。
@@ -23,7 +24,8 @@ func NewOrchestrator(sessions *model.SessionModel, messages *model.MessageModel,
 }
 
 // StartRun 用户消息进入：派发所有 depends_on 为空的根节点。
-func (o *Orchestrator) StartRun(ctx context.Context, s *model.Session, msgID int64, userPrompt string) ([]string, error) {
+func (o *Orchestrator) StartRun(ctx context.Context, s *model.Session, msgID int64, userPrompt string,
+	history []protocol.HistoryEntry) ([]string, error) {
 	dsl, err := dslOfSession(s)
 	if err != nil {
 		return nil, err
@@ -32,7 +34,7 @@ func (o *Orchestrator) StartRun(ctx context.Context, s *model.Session, msgID int
 	for _, n := range dsl.Nodes {
 		if len(n.DependsOn) == 0 {
 			prompt := renderPrompt(n.PromptTpl, userPrompt, nil)
-			tu, err := o.scheduler.Dispatch(ctx, msgID, s.SessionUUID, s.GID, n.AgentUUID, prompt, nil, n.ID)
+			tu, err := o.scheduler.Dispatch(ctx, msgID, s.SessionUUID, s.GID, n.AgentUUID, prompt, history, nil, n.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -109,7 +111,7 @@ func (o *Orchestrator) Advance(ctx context.Context, completedTaskUUID string) er
 			}
 		}
 		if _, err := o.scheduler.Dispatch(ctx, msgID, sess.SessionUUID, sess.GID,
-			n.AgentUUID, prompt, parentID, n.ID); err != nil {
+			n.AgentUUID, prompt, nil, parentID, n.ID); err != nil {
 			return err
 		}
 	}

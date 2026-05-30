@@ -14,6 +14,10 @@ func KnownTypes() []KnownType {
 		{Type: "openclaw", DefaultBinary: "openclaw"},
 		{Type: "hermes", DefaultBinary: "hermes"},
 		{Type: "workbuddy", DefaultBinary: "workbuddy"},
+		{Type: "claudecode", DefaultBinary: "claude"},
+		{Type: "codex", DefaultBinary: "codex"},
+		{Type: "opencode", DefaultBinary: "opencode"},
+		{Type: "gemini", DefaultBinary: "gemini"},
 	}
 }
 
@@ -27,6 +31,14 @@ func Build(name, typ, binary string, args []string, env map[string]string) Agent
 		return NewHermesAdapter(HermesConfig{Name: name, Binary: binary, Args: args, Env: env})
 	case "workbuddy":
 		return NewWorkbuddyAdapter(WorkbuddyConfig{Name: name, Binary: binary, Args: args, Env: env})
+	case "claudecode":
+		return NewClaudeCodeAdapter(ClaudeCodeConfig{Name: name, Binary: binary, Args: args, Env: env})
+	case "codex":
+		return NewCodexAdapter(CodexConfig{Name: name, Binary: binary, Args: args, Env: env})
+	case "opencode":
+		return NewOpenCodeAdapter(OpenCodeConfig{Name: name, Binary: binary, Args: args, Env: env})
+	case "gemini":
+		return NewGeminiAdapter(GeminiConfig{Name: name, Binary: binary, Args: args, Env: env})
 	default:
 		return NewStdioAdapter(StdioConfig{Name: name, Type: typ, Binary: binary, Args: args, Env: env})
 	}

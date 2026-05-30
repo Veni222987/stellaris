@@ -68,5 +68,5 @@ func (r *Relay) Advance(ctx context.Context, completedTaskUUID string) (string, 
 	}
 	nextAgent := sess.AgentUUIDs[idx+1]
 	parentID := t.ID
-	return r.scheduler.Dispatch(ctx, msg.ID, sess.SessionUUID, sess.GID, nextAgent, output, &parentID, "")
+	return r.scheduler.Dispatch(ctx, msg.ID, sess.SessionUUID, sess.GID, nextAgent, output, nil, &parentID, "")
 }

@@ -76,8 +76,11 @@ func (c *consumer) execute(ctx context.Context, task protocol.TaskMessage) {
 	tctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	log.Printf("[task] 启动 Chat type=%s name=%s", a.Type(), a.Name())
-	chunks, err := a.Chat(tctx, adapter.ChatRequest{Prompt: task.Prompt})
+	log.Printf("[task] 启动 Chat type=%s name=%s history=%d", a.Type(), a.Name(), len(task.History))
+	chunks, err := a.Chat(tctx, adapter.ChatRequest{
+		Prompt:  task.Prompt,
+		History: toAdapterHistory(task.History),
+	})
 	if err != nil {
 		log.Printf("[task] Chat err=%v", err)
 		c.publishError(task.TaskUUID, err.Error())
@@ -90,6 +93,17 @@ func (c *consumer) execute(ctx context.Context, task protocol.TaskMessage) {
 		seq++
 	}
 	log.Printf("[task] 完成 %s (共 %d chunks)", task.TaskUUID, seq)
+}
+
+func toAdapterHistory(h []protocol.HistoryEntry) []adapter.HistoryEntry {
+	if len(h) == 0 {
+		return nil
+	}
+	out := make([]adapter.HistoryEntry, len(h))
+	for i, e := range h {
+		out[i] = adapter.HistoryEntry{Role: e.Role, Content: e.Content}
+	}
+	return out
 }
 
 func (c *consumer) publishChunk(taskUUID string, seq int, typ protocol.ChunkType, chunk string) {

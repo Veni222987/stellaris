@@ -19,16 +19,23 @@ func CancelTopic(gid, taskUUID string) string {
 	return fmt.Sprintf("stellaris/%s/cancel/%s", gid, taskUUID)
 }
 
+// HistoryEntry 会话历史中的一条记录
+type HistoryEntry struct {
+	Role    string `json:"role"`    // "user" 或 "assistant"
+	Content string `json:"content"` // 消息内容
+}
+
 // TaskMessage 任务下发消息结构
 type TaskMessage struct {
-	TaskUUID    string `json:"task_uuid"`
-	SessionUUID string `json:"session_uuid"`
-	AgentUUID   string `json:"agent_uuid"`
-	AgentType   string `json:"agent_type"`
-	AgentName   string `json:"agent_name"`
-	Prompt      string `json:"prompt"`
-	Stream      bool   `json:"stream"`
-	TimeoutSec  int    `json:"timeout_sec"`
+	TaskUUID    string         `json:"task_uuid"`
+	SessionUUID string         `json:"session_uuid"`
+	AgentUUID   string         `json:"agent_uuid"`
+	AgentType   string         `json:"agent_type"`
+	AgentName   string         `json:"agent_name"`
+	Prompt      string         `json:"prompt"`
+	Stream      bool           `json:"stream"`
+	TimeoutSec  int            `json:"timeout_sec"`
+	History     []HistoryEntry `json:"history,omitempty"` // 本次消息之前的会话历史
 }
 
 // ChunkType 结果分片类型
