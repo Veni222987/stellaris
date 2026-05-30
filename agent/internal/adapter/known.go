@@ -23,7 +23,9 @@ func KnownTypes() []KnownType {
 
 // Build 按类型构造对应 adapter；未知类型走通用 StdioAdapter。
 // binary/args/env 为空时由各 adapter 落到自己的默认值。
-func Build(name, typ, binary string, args []string, env map[string]string) Agent {
+// store 供原生会话 adapter（claudecode/codex/gemini/opencode）持久化 CLI session ID；
+// openclaw/hermes/workbuddy 等 StdioAdapter 系不使用 store。
+func Build(name, typ, binary string, args []string, env map[string]string, store *SessionStore) Agent {
 	switch typ {
 	case "openclaw":
 		return NewOpenClawAdapter(OpenClawConfig{Name: name, Binary: binary, Args: args, Env: env})
@@ -32,13 +34,13 @@ func Build(name, typ, binary string, args []string, env map[string]string) Agent
 	case "workbuddy":
 		return NewWorkbuddyAdapter(WorkbuddyConfig{Name: name, Binary: binary, Args: args, Env: env})
 	case "claudecode":
-		return NewClaudeCodeAdapter(ClaudeCodeConfig{Name: name, Binary: binary, Args: args, Env: env})
+		return NewClaudeCodeAdapter(ClaudeCodeConfig{Name: name, Binary: binary, Args: args, Env: env}, store)
 	case "codex":
-		return NewCodexAdapter(CodexConfig{Name: name, Binary: binary, Args: args, Env: env})
+		return NewCodexAdapter(CodexConfig{Name: name, Binary: binary, Args: args, Env: env}, store)
 	case "opencode":
-		return NewOpenCodeAdapter(OpenCodeConfig{Name: name, Binary: binary, Args: args, Env: env})
+		return NewOpenCodeAdapter(OpenCodeConfig{Name: name, Binary: binary, Args: args, Env: env}, store)
 	case "gemini":
-		return NewGeminiAdapter(GeminiConfig{Name: name, Binary: binary, Args: args, Env: env})
+		return NewGeminiAdapter(GeminiConfig{Name: name, Binary: binary, Args: args, Env: env}, store)
 	default:
 		return NewStdioAdapter(StdioConfig{Name: name, Type: typ, Binary: binary, Args: args, Env: env})
 	}

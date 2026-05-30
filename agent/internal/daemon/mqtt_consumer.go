@@ -78,8 +78,9 @@ func (c *consumer) execute(ctx context.Context, task protocol.TaskMessage) {
 
 	log.Printf("[task] 启动 Chat type=%s name=%s history=%d", a.Type(), a.Name(), len(task.History))
 	chunks, err := a.Chat(tctx, adapter.ChatRequest{
-		Prompt:  task.Prompt,
-		History: toAdapterHistory(task.History),
+		SessionUUID: task.SessionUUID,
+		Prompt:      task.Prompt,
+		History:     toAdapterHistory(task.History),
 	})
 	if err != nil {
 		log.Printf("[task] Chat err=%v", err)

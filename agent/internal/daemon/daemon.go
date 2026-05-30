@@ -18,6 +18,7 @@ type Daemon struct {
 // New 加载配置 + 解析 agent（PATH 自动发现 + agents.d 覆盖）并注册 adapter。
 func New(cfg *config.Config) (*Daemon, error) {
 	reg := adapter.NewRegistry()
+	store := adapter.NewSessionStore(config.Dir())
 	if cfg.AgentsDir == "" {
 		cfg.AgentsDir = "/etc/stellaris/agents.d"
 	}
@@ -28,7 +29,7 @@ func New(cfg *config.Config) (*Daemon, error) {
 	r := newRegistrar(cfg)
 	for _, ra := range resolved {
 		d := ra.Decl
-		a := adapter.Build(d.Name, d.Type, d.Binary, d.Args, d.Env)
+		a := adapter.Build(d.Name, d.Type, d.Binary, d.Args, d.Env, store)
 		uuid, err := r.Register(d.Name, d.Type, a.Capabilities())
 		if err != nil {
 			log.Printf("[daemon] 注册 agent %s 失败: %v", d.Name, err)

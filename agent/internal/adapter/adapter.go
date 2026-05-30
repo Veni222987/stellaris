@@ -13,9 +13,10 @@ type HistoryEntry struct {
 }
 
 type ChatRequest struct {
-	Prompt  string
-	Model   string
-	History []HistoryEntry // 本次消息之前的会话历史，按时间升序
+	SessionUUID string         // Core 会话 UUID，供原生 adapter 查 SessionStore
+	Prompt      string
+	Model       string
+	History     []HistoryEntry // StdioAdapter 文本注入用；原生 adapter 忽略此字段
 }
 
 type Chunk struct {
